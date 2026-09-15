@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<title>Раскладка</title>
+<style>
+  @font-face { font-family: "Fira Sans Condensed"; src: url(fonts/FiraSansCondensed-Regular.ttf); }
+  @font-face { font-family: "Fira Sans Condensed"; src: url(fonts/FiraSansCondensed-Italic.ttf); font-style: italic; }
+  @font-face { font-family: "Fira Sans Condensed"; src: url(fonts/FiraSansCondensed-Bold.ttf); font-weight: bold; }
+  @font-face { font-family: "Fira Sans Condensed"; src: url(fonts/FiraSansCondensed-BoldItalic.ttf); font-weight: bold; font-style: italic; }
+
+  :root {
+    --ink: #221d28; --muted: #8b8394; --seam: #43284f;
+    --accent: #7a3d92; --pin: #3a2263;
+    --card: #fdfaf7; --panel: #ece7f1;
+  }
+  /* Зерно бумаги: одна картинка на фон страницы и на лист схемы, разной густоты. */
+  body {
+    margin: 0;
+    font: 14px/1.45 "Segoe UI", -apple-system, system-ui, Arial, sans-serif;
+    color: var(--ink);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E"),
+      radial-gradient(120% 90% at 50% 0%, #fffdfa 0%, #f4eee6 60%, #ebe2d6 100%);
+    background-attachment: fixed;
+  }
+  header {
+    position: sticky; top: 0; z-index: 1; padding: 1.45rem .9rem .5rem;
+    background: rgba(236, 231, 241, .9); backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(59, 50, 71, .08);
+    display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .35rem;
+  }
+  #tools { display: inline-flex; flex-wrap: wrap; gap: .3rem .35rem; }
+  header select { font: inherit; padding: .15rem .4rem; max-width: 100%; }
+  header button {
+    font: inherit; padding: .15rem .5rem; cursor: pointer;
+    color: inherit; background: #fff; border: 1px solid rgba(59, 50, 71, .25); border-radius: 6px;
+  }
+  header button:hover { background: #f6f1fa; }
+  header .pale { opacity: .45; }
+  /* Кнопки собраны по смыслу: песня, клетка, сетка, правка. Над каждой группой её имя. */
+  #tools { display: flex; flex-wrap: wrap; gap: 1.15rem .9rem; align-items: flex-end; }
+  .group { display: inline-flex; flex-wrap: wrap; gap: .3rem; position: relative; padding-left: .9rem; }
+  .group::before {
+    content: attr(data-name);
+    position: absolute; left: .9rem; top: -.85rem;
+    font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: #8a8195;
+  }
+  .group::after {
+    content: ""; position: absolute; left: .25rem; top: .1rem; bottom: .1rem;
+    border-left: 1px solid rgba(59, 50, 71, .16);
+  }
+  .group:first-child { padding-left: 0; }
+  .group:first-child::before { left: 0; }
+  .group:first-child::after { border: 0; }
+  .hint { color: #6b6375; font-size: .85em; margin-left: auto; align-self: flex-end; }
+
+  /* Одна и та же страница работает у Дмитрия и у ученика. У Дмитрия её раздаёт
+     программа, у ученика — статический хостинг; лишнее просто не показывается. */
+  body:not(.student) .only-student,
+  body.student .only-author { display: none !important; }
+  header input {
+    font: inherit; width: 9rem; padding: .15rem .4rem;
+    color: inherit; background: #fff; border: 1px solid rgba(59, 50, 71, .25); border-radius: 6px;
+  }
+  header input:placeholder-shown { border-style: dashed; }
+
+  /* Возврат из справки к своей схеме и ссылка на выложенную заготовку. */
+  .front button {
+    font: inherit; margin: .7rem 0 0; padding: .15rem .6rem; cursor: pointer;
+    color: inherit; background: #fff; border: 1px solid rgba(59, 50, 71, .25); border-radius: 6px;
+  }
+  .front button:hover { background: #f6f1fa; }
+  .link { color: #6b6375; font-size: .9em; margin: -.4rem 0 .7rem; }
+  .link a { color: var(--accent); }
+  .link button {
+    font: inherit; margin-left: .5rem; padding: 0 .4rem; cursor: pointer;
+    color: inherit; background: #fff; border: 1px solid rgba(59, 50, 71, .25); border-radius: 5px;
+  }
+  .link button:hover { background: #f6f1fa; }
+
+  /* Правка идёт в обычном поле ввода поверх схемы: каретка, выделение, вставка
+     и раскладка клавиатуры достаются даром. */
+  #edit {
+    position: absolute; z-index: 2; box-sizing: border-box; padding: 0;
+    font-family: "Fira Sans Condensed", sans-serif; line-height: 1; color: var(--ink);
+    background: rgba(255, 255, 255, .72);
+    border: 1px solid var(--accent); border-radius: 3px; outline: none;
+  }
+  main { padding: 1rem .9rem 3rem; }
+  h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 .7rem; letter-spacing: .01em; }
+  /* Вид для учеников: на листе только схема. */
+  .clean header, .clean .front, .clean .marks { display: none; }
+  .clean #exit { display: block; }
+  #exit {
+    display: none; position: fixed; right: .6rem; top: .6rem; z-index: 3;
+    font: inherit; padding: .1rem .5rem; cursor: pointer; opacity: .25;
+    color: inherit; background: #fff; border: 1px solid rgba(59, 50, 71, .25); border-radius: 6px;
+  }
+  #exit:hover { opacity: 1; }
+
+  /* Печать: на листе только схема песни, лист альбомный. */
+  @media print {
+    @page { size: A4 landscape; margin: 8mm; }
+    body { background: #fff; }
+    header, .front, .marks, #edit, #exit { display: none !important; }
+    main { padding: 0; }
+    .sheet { box-shadow: none; background: #fff; padding: 0; overflow: visible; }
+    .scheme { width: 100% !important; height: auto !important; }
+  }
+
+  .front { max-width: 46rem; margin: 0 0 1.6rem; }
+  .front p { color: #5b5265; margin: .4rem 0 0; }
+  /* Образец на листе по ширине схемы; номер строки в нём не нужен. */
+  .sample { width: 64rem; max-width: 100%; margin: 0 auto; box-sizing: border-box; }
+  .sample .num { display: none; }
+  /* Расшифровка под образцом: две колонки, чтобы весь экран читался сразу. */
+  .marks { margin: 1.3rem auto 0; padding: 0 0 0 1.6rem; max-width: 64rem; font-size: 1.22rem; line-height: 1.5; }
+  .marks li { margin: 0 0 .6rem; color: #5b5265; }
+  .marks b { color: var(--ink); font-weight: 600; }
+  /* Хвост справки: то, что делается клавишами и кнопками, а не отмечено на образце. */
+  .marks.tail { list-style: none; padding-left: 0; margin-top: .9rem; }
+  .marks.tail li::before { content: "— "; color: #8a8195; }
+  .scheme .lead { stroke: var(--seam); stroke-width: .5; opacity: .45; }
+  .scheme .leadtip { fill: var(--seam); opacity: .55; }
+  .scheme .leadnum { fill: #fdfaf7; stroke: var(--seam); stroke-width: .6; opacity: .85; }
+  .scheme .leadtext { font-size: 7px; text-anchor: middle; fill: var(--seam); }
+  .legend .scheme { max-width: 100%; height: auto; }
+  .notes { white-space: pre-line; color: #5b5265; max-width: 60rem; margin: .6rem 0 0; }
+
+  /* Лист схемы: акварельные разводы и зерно бумаги. Тёмные фактуры сюда не годятся —
+     под схемой должен оставаться читаемый чёрный текст, поэтому то же самое в светлом. */
+  .sheet {
+    border-radius: 14px; padding: 12px 16px;
+    box-sizing: border-box; overflow-x: auto;   /* широкая схема ездит внутри листа, шапка стоит на месте */
+    background-color: var(--card);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='600' viewBox='0 0 1200 600' preserveAspectRatio='none'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004 0.008' numOctaves='5' seed='6'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='1200' height='600' filter='url(%23c)' opacity='0.3'/%3E%3C/svg%3E"),
+      radial-gradient(55% 70% at 10% 6%, rgba(126, 61, 146, .12), transparent 70%),
+      radial-gradient(60% 80% at 90% 94%, rgba(84, 56, 148, .11), transparent 72%),
+      radial-gradient(75% 65% at 55% 45%, rgba(196, 176, 224, .13), transparent 78%);
+    background-size: 200px 200px, 100% 100%, auto, auto, auto;
+    background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+    background-blend-mode: multiply, multiply, normal, normal, normal;
+    box-shadow: 0 1px 2px rgba(45, 32, 62, .07), 0 14px 40px rgba(45, 32, 62, .1);
+  }
+  /* При рисовании энергии мышкой текст схемы не должен выделяться. */
+  .scheme { display: block; margin: 0 auto; font-family: "Fira Sans Condensed", sans-serif; user-select: none; }
+  .scheme text { font-size: 12px; fill: var(--ink); }
+  .scheme .num { font-size: 9px; fill: var(--muted); }
+  .scheme .pale { opacity: .42; }
+  /* Точка бледная, как и была; светлая кайма нужна только чтобы она не пропадала
+     на густой заливке. */
+  .scheme .dot { fill: #aaa1b6; stroke: rgba(255, 255, 255, .7); stroke-width: .6; }
+  .scheme .box { fill: none; stroke: #b9b1c4; stroke-width: .5; opacity: .5; }
+  .scheme .area { fill: rgba(122, 61, 146, .1); stroke: var(--accent); stroke-width: .7; rx: 2; }
+  .scheme .cut { fill: var(--seam); opacity: .8; }
+  .scheme .legend { font-size: 10px; fill: #4a4353; }
+  .scheme .mark { fill: var(--seam); opacity: .75; }
+  .scheme .band { fill: transparent; cursor: crosshair; }
+</style>
+<header>
+  <span id="tools">
+    <span class="group only-author" data-name="Песня">
+      <select id="list"></select>
+      <button id="new">Новая</button>
+      <button data-do="duplicate">Дублировать</button>
+      <button data-do="rename">Переименовать</button>
+      <button data-do="remove">Удалить</button>
+    </span>
+    <span class="group" data-name="Клетка">
+      <button data-do="bold" title="Ctrl+B"><b>Жирный</b></button>
+      <button data-do="pale" title="Ctrl+I"><span class="pale">Бледный</span></button>
+      <button data-do="repeat" title="Знак повтора колена в выбранной клетке">Повтор колена</button>
+      <button data-do="zapev" title="Правка запева выбранной строки">Запев</button>
+      <button data-do="cut" title="Разрез между коленами перед выбранной клеткой: двойная черта через всю схему">Разбивка</button>
+      <button data-do="merge" title="Ctrl+M">Объединить</button>
+      <button data-do="split" title="Ctrl+Shift+M">Разделить</button>
+      <button data-do="align">Выравнивание</button>
+      <button data-do="clear" title="Очистить выделенный блок (Delete)">Очистить</button>
+    </span>
+    <span class="group" data-name="Сетка">
+      <button data-do="colAdd" title="Столбец добавляется во всех строках сразу">+ столбец</button>
+      <button data-do="colDel">− столбец</button>
+      <button data-do="rowAdd">+ строка</button>
+      <button data-do="rowCopy">Копия строки</button>
+      <button data-do="rowDel">− строка</button>
+    </span>
+    <span class="group" data-name="Правка">
+      <button data-do="undo" title="Ctrl+Z">Отменить</button>
+      <button data-do="redo" title="Ctrl+Shift+Z">Вернуть</button>
+      <button class="only-student" data-do="reset" title="Стереть всё и вернуться к исходному заданию">Заново</button>
+    </span>
+    <span class="group only-student" data-name="Черновик">
+      <button data-do="draft" title="Сохранить работу в файл: продолжить на другом устройстве или вернуть, если браузер потеряет память">В файл</button>
+      <button data-do="open" title="Открыть черновик, сохранённый в файл">Из файла</button>
+    </span>
+    <span class="group" data-name="Справка">
+      <button data-do="read" title="Что означают знаки схемы">Как читать схему</button>
+      <button data-do="fill" title="Что и чем делается в программе">Как заполнять схему</button>
+    </span>
+    <span class="group" data-name="Вывод">
+      <button data-do="spacing" title="Точки в пустых клетках, бледные клетки или ничего">Расстояния</button>
+      <input class="only-student" id="who" placeholder="Ваше имя" autocomplete="name" spellcheck="false"
+             title="Имя и время попадут на картинку, чтобы работу было видно от кого">
+      <button data-do="png">Картинка</button>
+      <button class="only-author" data-do="clean" title="Только схема, без панели. Выход — Esc">Для учеников</button>
+      <button class="only-author" data-do="all" title="Выгрузить схемы всех песен в папку png рядом с программой">Все картинки</button>
+      <button class="only-author" data-do="print" title="Печать и сохранение в PDF">Печать</button>
+      <button class="only-author" data-do="publish" title="Выложить эту песню заготовкой на страницу для учеников">Опубликовать</button>
+      <button class="only-author" data-do="refresh" title="Отправить нынешний вид программы на страницу для учеников, ничего не публикуя">Обновить страницу</button>
+    </span>
+  </span>
+  <span class="hint">Клик по клетке — правка, Tab — дальше, Enter — строкой ниже.
+    Протяжка мышкой — блок клеток, Delete — очистить, Ctrl+C и Ctrl+V — перенести.
+    Клик по номеру строки справа — вся строка.<span class="only-student" id="auto"> Работа сохраняется в браузере сама.</span></span>
+</header>
+<main id="song"></main>
+<button id="exit" title="Выйти из вида для учеников">Esc</button>
+<input id="edit" hidden autocomplete="off" spellcheck="false">
+<script src="app.js"></script>
+</html>
