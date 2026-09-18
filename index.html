@@ -45,6 +45,8 @@
     position: absolute; left: .9rem; top: -.85rem;
     font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: #8a8195;
   }
+  /* У ученика та же группа кнопок называется иначе: «Вывод» — язык автора, «Экспорт» понятнее ученику. */
+  body.student .group[data-name="Вывод"]::before { content: "Экспорт"; }
   .group::after {
     content: ""; position: absolute; left: .25rem; top: .1rem; bottom: .1rem;
     border-left: 1px solid rgba(59, 50, 71, .16);
@@ -88,6 +90,7 @@
   }
   main { padding: 1rem .9rem 3rem; }
   h1 { font-size: 1.4rem; font-weight: 600; margin: 0 0 .7rem; letter-spacing: .01em; }
+  body.student h1 { cursor: pointer; }
   /* Вид для учеников: на листе только схема. */
   .clean header, .clean .front, .clean .marks { display: none; }
   .clean #exit { display: block; }
@@ -189,11 +192,11 @@
     <span class="group" data-name="Правка">
       <button data-do="undo" title="Ctrl+Z">Отменить</button>
       <button data-do="redo" title="Ctrl+Shift+Z">Вернуть</button>
-      <button class="only-student" data-do="reset" title="Стереть всё и вернуться к исходному заданию">Заново</button>
+      <button class="only-student" data-do="reset" title="Стереть всё и вернуться к исходному заданию">Новая схема</button>
     </span>
-    <span class="group only-student" data-name="Черновик">
-      <button data-do="draft" title="Сохранить работу в файл: продолжить на другом устройстве или вернуть, если браузер потеряет память">В файл</button>
-      <button data-do="open" title="Открыть черновик, сохранённый в файл">Из файла</button>
+    <span class="group only-student" data-name="Файл схемы">
+      <button data-do="draft" title="Сохранить схему в файл: продолжить на другом устройстве или вернуть, если браузер потеряет память">Сохранить</button>
+      <button data-do="open" title="Открыть схему, сохранённую в файл">Открыть</button>
     </span>
     <span class="group" data-name="Справка">
       <button data-do="read" title="Что означают знаки схемы">Как читать схему</button>

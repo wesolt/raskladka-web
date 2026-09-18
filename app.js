@@ -215,7 +215,19 @@ function show() {
   song = author ? songs.find(s => s.id === id) || null : songs[0];
   list.value = song ? song.id : '';
   if (!song) return drawStart(main);   // пустой лист: песню ещё не выбрали
-  htmlEl('h1', main, song.title);
+  const h1 = htmlEl('h1', main, song.title);
+  // У ученика своих песен в списке нет — название схемы правится кликом по заголовку,
+  // чтобы файлы и картинки разных песен не назывались все одинаково.
+  if (!author) {
+    h1.title = 'Нажмите, чтобы назвать схему';
+    h1.onclick = () => {
+      const title = prompt('Название схемы', song.title)?.trim();
+      if (!title || title === song.title) return;
+      song.title = title;
+      save(song);
+      show();
+    };
+  }
   if (song.link) showLink(main, song.link);
   const sheet = htmlEl('div', main, '', 'sheet');
   const notes = song.notes ? htmlEl('p', main, song.notes, 'notes') : null;
@@ -912,7 +924,9 @@ const ops = {
   read: () => { location.hash = '!read'; },
   fill: () => { location.hash = '!fill'; },
   reset: () => {
-    if (!confirm('Стереть всё и вернуться к исходному заданию?\n\nОтменить это будет нельзя.')) return;
+    if (!confirm('Стереть всё и вернуться к исходному заданию?\n\n'
+      + 'Прежняя схема пропадёт из браузера — если она ещё нужна, сначала сохраните её в файл. '
+      + 'Отменить это будет нельзя.')) return;
     store.del(DRAFT);
     location.reload();
   },
@@ -1066,6 +1080,14 @@ const HOWTO = [
   ['Если ошиблись', 'Ctrl+Z отменяет, Ctrl+Shift+Z возвращает. Работа сохраняется сама.'],
 ];
 
+// Только у ученика: своего списка песен нет, и схема живёт в браузере одна за раз.
+const HOWTO_STUDENT = [
+  ['Название схемы', 'клик по заголовку меняет его. Название попадёт в имя файла и на картинку.'],
+  ['Файл схемы', '«Сохранить» сохраняет схему файлом json, «Открыть» — загрузка любого json существующей схемы. '
+    + 'В браузере живёт только последняя схема: беретесь за новую песню — сначала сохраните прежнюю в файл, '
+    + 'если она вам потом будет нужна для редактирования.'],
+];
+
 // Пустой лист: с него программа начинается, песня выбирается в списке.
 function drawStart(parent) {
   sel = null;
@@ -1088,17 +1110,18 @@ function drawHelp(parent, kind) {
   if (read) drawSample(parent, SAMPLE);
 
   const marks = htmlEl('ol', parent, '', 'marks');
-  for (const [name, text] of read ? LEGEND : HOWTO) {
+  const items = read ? LEGEND : author ? HOWTO : [...HOWTO, ...HOWTO_STUDENT];
+  for (const [name, text] of items) {
     const li = htmlEl('li', marks);
     htmlEl('b', li, name);
     htmlEl('span', li, ' — ' + text);
   }
   if (read) return;
   const li = htmlEl('li', marks);
-  htmlEl('b', li, 'Когда готово');
+  htmlEl('b', li, author ? 'Когда готово' : 'Экспорт');
   htmlEl('span', li, author
     ? ' — схему сохраняет картинкой кнопка «Картинка».'
-    : ' — впишите имя наверху страницы и нажмите «Картинка». Её и отправьте боту в раздел домашних заданий.');
+    : ' — впишите имя наверху страницы и нажмите «Картинка»: её отправьте боту в раздел домашних заданий.');
 }
 
 function drawSample(parent, song, items) {
@@ -1302,7 +1325,7 @@ async function savePng() {
     alert('Впишите имя наверху страницы: без него будет непонятно, чья это работа.');
     return who.focus();
   }
-  const picture = await schemePng(undefined, name && `${name} · ${stamp()}`);
+  const picture = await schemePng(undefined, name && `${song.title} · ${name} · ${stamp()}`);
   if (!picture) return;
   download(picture, name ? `${song.title} — ${name}.png` : `${song.title}.png`);
 }
@@ -1322,7 +1345,7 @@ function saveDraft() {
   if (!song) return;
   const name = who.value.trim();
   download(new Blob([JSON.stringify({ ...song, who: name })], { type: 'application/json' }),
-           `${song.title}${name ? ` — ${name}` : ''} — черновик.json`);
+           `${song.title}${name ? ` — ${name}` : ''}.json`);
 }
 
 // Открытый черновик ложится в память браузера вместо текущего: дальше страница
@@ -1332,7 +1355,7 @@ function openDraft() {
   pick.onchange = async () => {
     let draft;
     try { draft = JSON.parse(await pick.files[0].text()); } catch { draft = null; }
-    if (!draft?.rows?.length) return alert('Это не черновик схемы: нужен файл, сохранённый кнопкой «В файл».');
+    if (!draft?.rows?.length) return alert('Это не файл схемы: нужен файл, сохранённый кнопкой «Сохранить».');
     if (draft.title !== song.title && !confirm(
       `В файле схема «${draft.title}», а на странице «${song.title}». Открыть? Работа на странице пропадёт.`)) return;
     if (draft.who) store.set('who', draft.who);
